@@ -15,6 +15,15 @@ impl Default for Mass {
     }
 }
 
+#[derive(Component)]
+pub struct Restitution(pub f32);
+
+impl Default for Restitution {
+    fn default() -> Self {
+        Self(0.3)
+    }
+}
+
 #[derive(Component, Default)]
 pub struct Vel(pub Vec2);
 

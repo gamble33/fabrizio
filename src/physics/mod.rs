@@ -2,11 +2,8 @@
 /// https://github.com/Jondolf/bevy_xpbd/blob/main/src/plugins/integrator.rs
 /// https://matthias-research.github.io/pages/publications/PBDBodies.pdf
 /// https://www.youtube.com/watch?v=jrociOAYqxA
-
 mod component;
 mod particle;
-
-use core::panic;
 
 pub use component::*;
 pub use particle::*;
@@ -32,6 +29,7 @@ impl Plugin for PhysicsPlugin {
                     integrate.after(collect_collision_pairs),
                     solve_pos.after(integrate),
                     update_vel.after(solve_pos),
+                    solve_vel.after(update_vel),
                     sync_transforms.after(update_vel),
                 ),
             );
@@ -80,6 +78,7 @@ fn solve_pos(
     mut query: Query<(Entity, &mut Pos, &Mass, &CircleCollider)>,
     mut contacts: ResMut<Contacts>,
 ) {
+    contacts.0.clear();
     let mut iter = query.iter_combinations_mut();
     while let Some(
         [(entity_a, mut pos_a, mass_a, circle_a), (entity_b, mut pos_b, mass_b, circle_b)],
@@ -112,25 +111,37 @@ fn update_vel(mut query: Query<(&Pos, &PosPrev, &mut Vel)>) {
 }
 
 fn solve_vel(
-    mut query: Query<(&mut Vel, &VelPreSolve, &Pos, &Mass)>,
+    mut query: Query<(&mut Vel, &VelPreSolve, &Pos, &Mass, &Restitution)>,
     contacts: Res<Contacts>,
 ) {
     for (entity_a, entity_b) in contacts.0.iter().cloned() {
         let (
-            (mut vel_a, vel_pre_solve_a, pos_a, mass_a),
-            (mut vel_b, vel_pre_solve_b, pos_b, mass_b),
+            (mut vel_a, vel_pre_solve_a, pos_a, mass_a, restitution_a),
+            (mut vel_b, vel_pre_solve_b, pos_b, mass_b, restitution_b),
         ) = unsafe {
             assert!(entity_a != entity_b);
             (
-                query
-                    .get_unchecked(entity_a)
-                    .expect("Didn't find componnents"),
-                query
-                    .get_unchecked(entity_b)
-                    .expect("Didn't find components"),
+                query.get_unchecked(entity_a).unwrap(),
+                query.get_unchecked(entity_b).unwrap(),
             )
         };
-        
+
+        let n = (pos_b.0 - pos_a.0).normalize();
+        let vel_relative_pre_solve = vel_pre_solve_a.0 - vel_pre_solve_b.0;
+        let vel_normal_pre_solve = vel_relative_pre_solve.dot(n);
+
+        let vel_relative = vel_a.0 - vel_b.0;
+        let vel_normal = vel_relative.dot(n);
+        let restitution = (restitution_a.0 + restitution_b.0) / 2.0;
+
+        let w_a = 1.0 / mass_a.0;
+        let w_b = 1.0 / mass_b.0;
+        let w_sum = w_a + w_b;
+
+        vel_a.0 += n * (-vel_normal - restitution * vel_normal_pre_solve) * w_a
+            / w_sum;
+        vel_b.0 -= n * (-vel_normal - restitution * vel_normal_pre_solve) * w_b
+            / w_sum;
     }
 }
 

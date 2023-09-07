@@ -40,7 +40,7 @@ fn startup(
         })
         .insert(ParticleBundle::from_pos_and_vel(
             Vec2::new(-20.0, 0.0),
-            Vec2::new(0.0, 0.0),
+            Vec2::new(6.0, 0.0),
         ))
         .insert(Mass(1.0));
 
@@ -52,7 +52,7 @@ fn startup(
         })
         .insert(ParticleBundle::from_pos_and_vel(
             Vec2::new(20.0, 0.0),
-            Vec2::new(-4.0, 0.0),
+            Vec2::new(-6.0, 0.0),
         ))
         .insert(Mass(1.0));
 
