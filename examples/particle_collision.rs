@@ -1,6 +1,7 @@
 use fabrizio_rs::physics::*;
 
 use bevy::prelude::*;
+use rand::random;
 
 fn main() {
     App::new()

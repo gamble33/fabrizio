@@ -10,7 +10,6 @@ fn main() {
       (
         DefaultPlugins
         .set(ImagePlugin::default_nearest()),
-        PlayerPlugin,
       )
     )
     .add_systems(Startup, setup)
